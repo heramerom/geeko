@@ -1,2 +1,2 @@
 # geeko
-A cURL-Like command like tool!
+A cURL-Like command line tool!
