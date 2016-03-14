@@ -30,10 +30,10 @@ const (
 )
 
 var (
-	_timeOut            = 30 * time.Second
-	_contentJsonRegex   = "application/json"
-	_enableCookie       = false
-	_baseUrl              = "http://localhost:8080"	// https://wanna-shop-test.elasticbeanstalk.com:8443
+	_timeOut              = 30 * time.Second
+	_contentJsonRegex     = "application/json"
+	_enableCookie         = false
+	_baseUrl              = "http://localhost:8080" // https://wanna-shop-test.elasticbeanstalk.com:8443
 	_params               = make(map[string]string)
 	_headers              = make(map[string]string)
 	_requestSerialization = "http" // can be http, json, xml
@@ -69,7 +69,7 @@ func main() {
 				break
 			}
 		}
-		fmt.Println("input command:", str)
+
 		inStr := strings.TrimSpace(string(data))
 
 		if inStr == "" {
