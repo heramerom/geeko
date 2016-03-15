@@ -11,12 +11,12 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
-	"os"
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/chzyer/readline"
 )
 
 const (
@@ -27,6 +27,10 @@ const (
 	DumpReqParam
 	DumpResHeader
 	DumpResBody
+)
+
+var cmdCompleter = readline.NewPrefixCompleter(
+	readline.PcItem("st"),
 )
 
 var (
@@ -53,34 +57,48 @@ var (
 func main() {
 
 	fmt.Println(Color("Geeko is a CLI http tools with version:", Cyan), __version)
-	reader := bufio.NewReader(os.Stdin)
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:       Color(">>> ", Cyan),
+		HistoryFile:  "/tmp/geeko.history",
+		AutoComplete: cmdCompleter,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+
+	buf := bytes.NewBufferString("")
 	for {
-		fmt.Printf(Color(">>> ", Cyan))
 
-		data, _, _ := reader.ReadLine()
-		str := string(data)
-		for {
-			if strings.HasSuffix(str, "\\") {
-				str = str[0 : len(str)-1]
-				fmt.Printf(Color("  > ", Cyan))
-				d, _, _ := reader.ReadLine()
-				str = str + " " + string(d)
-			} else {
-				break
-			}
-		}
-
-		inStr := strings.TrimSpace(string(data))
-
-		if inStr == "" {
+		line, e := rl.Readline()
+		if err != nil {
+			fmt.Println(Color("Error:\n", Red), "\t", e.Error())
 			continue
 		}
-		if inStr == "quit" || inStr == "exit" {
+
+		app, complete := AppendInput(buf.String(), line)
+		buf.WriteString(app)
+		if !complete {
+			rl.SetPrompt(Color("--> ", Cyan))
+			continue
+		}
+
+		ins := strings.TrimSpace(buf.String())
+		rl.SetPrompt(Color(">>> ", Cyan))
+		buf.Reset()
+
+		if ins == "" {
+			continue
+		}
+		if ins == "quit" || ins == "exit" {
 			break
 		}
 
-		reg := regexp.MustCompile(`[\S]+`)
-		cms := reg.FindAllString(inStr, -1)
+		cms, e := ParseInputArgs(ins)
+		if e != nil {
+			fmt.Println(Color("Error:\n", Red), "\t", e.Error())
+		}
+
 		cmd := cms[0]
 		cms = cms[1:]
 
@@ -123,7 +141,88 @@ func main() {
 	}
 }
 
-func parseInputArgs(s string) (ss []string, complete string) {
+func AppendInput(org, app string) (args string, complete bool) {
+	var s string
+	s = " " + app
+	complete = true
+	if strings.HasSuffix(s, "\\") && !strings.HasSuffix(s, "\\\\") {
+		complete = false
+		s = s[:len(s)-1]
 
+	}
+	tmp := org + s
+	c := strings.Count(tmp, `"`) - strings.Count(tmp, `\"`)
+	if c%2 != 0 {
+		complete = false
+	}
+	args = s
+	return
+}
+
+func ParseInputArgs(line string) (args []string, err error) {
+	as := make([]string, 0)
+	rs := []rune(line)
+	res := make([][]rune, 0)
+	sub := make([]rune, 0)
+	quote := false
+	tm := false
+	for _, v := range rs {
+		if v == '\\' {
+			if tm {
+				sub = append(sub, v)
+				tm = false
+			} else {
+				tm = true
+			}
+		} else if v == '"' {
+			if tm {
+				sub = append(sub, v)
+				tm = false
+			} else {
+				quote = !quote
+				if !quote {
+					res = append(res, sub)
+					sub = make([]rune, 0)
+				}
+			}
+		} else if v == ' ' {
+			if tm {
+				sub = append(sub, v)
+				tm = false
+			} else if quote {
+				sub = append(sub, v)
+			} else {
+				if len(sub) != 0 {
+					res = append(res, sub)
+					sub = make([]rune, 0)
+				}
+			}
+		} else {
+			if quote {
+				if tm {
+					if v == 't' {
+						sub = append(sub, []rune{' ', ' ', ' ', ' '}...)
+					} else if v == 'n' {
+						sub = append(sub, '\n')
+					} else {
+						sub = append(sub, v)
+					}
+					tm = false
+				} else {
+					sub = append(sub, v)
+				}
+			} else {
+				sub = append(sub, v)
+			}
+		}
+	}
+	if len(sub) != 0 {
+		res = append(res, sub)
+	}
+
+	for _, v := range res {
+		as = append(as, string(v))
+	}
+	args = as
 	return
 }
