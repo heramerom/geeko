@@ -31,7 +31,7 @@ const (
 
 var cmdCompleter = readline.NewPrefixCompleter(
 	readline.PcItem("st"),
-)
+	readline.PcItem("get"), readline.PcItem("post"))
 
 var (
 	_timeOut              = 30 * time.Second
@@ -60,7 +60,7 @@ func main() {
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:       Color(">>> ", Cyan),
 		HistoryFile:  "/tmp/geeko.history",
-		AutoComplete: cmdCompleter,
+		AutoComplete: NewListComplete(cmdCompleter),
 	})
 	if err != nil {
 		panic(err)
