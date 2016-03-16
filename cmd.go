@@ -49,7 +49,7 @@ func doAddCommand(cmd string, cms []string) (result string, err error) {
 	buf := bytes.NewBufferString("")
 	if hs != nil {
 		if len(hs) != 0 {
-			buf.WriteString("Add Header:\n")
+			buf.WriteString(Color("Add Header:\n", Yellow))
 		}
 		for k, v := range hs {
 			_headers[k] = v
@@ -58,7 +58,7 @@ func doAddCommand(cmd string, cms []string) (result string, err error) {
 	}
 	if ps != nil {
 		if len(ps) != 0 {
-			buf.WriteString("Add Params:\n")
+			buf.WriteString(Color("Add Params:\n", Yellow))
 		}
 		for k, v := range ps {
 			_params[k] = v
@@ -76,7 +76,7 @@ func doSaveCommand(cmd string, cms []string) (result string, err error) {
 	cs := append(cms, LastRequestCmd_...)
 	item := NewListItemWithArgs(cs)
 	SaveToList(*item)
-	result = "save success\n\t" + strings.Join(cs, " ")
+	result = Color("Save:\n\t", Yellow) + strings.Join(cs, " ")
 	return
 }
 
@@ -175,8 +175,8 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 }
 
 func doListCommand(cmd string, cms []string) (cmds string, err error) {
-	if len(cmd) != 0 {
-		err = errors.New("Usage: [list|ls|l]")
+	if len(cms) > 1 {
+		err = errors.New("Usage: [list|ls|l] name")
 	}
 
 	items, err := ListItems()
@@ -184,16 +184,31 @@ func doListCommand(cmd string, cms []string) (cmds string, err error) {
 		return
 	}
 
-	buf := bytes.NewBufferString("")
-	for _, v := range items {
-		buf.WriteString(Color(v.Name, Cyan))
+	if len(cms) == 0 {
+		buf := bytes.NewBufferString("")
+		for _, v := range items {
+			buf.WriteString(Color(v.Name, Cyan))
+			buf.WriteString(" ")
+			buf.WriteString(Color(v.Cmd, Green))
+			buf.WriteString(" ")
+			buf.WriteString(Color(strings.Join(v.Args, " "), Green))
+			buf.WriteString("\n")
+		}
+		cmds = buf.String()
+	} else {
+		item, err := FindListItemsWithName(cms[0])
+		if err != nil {
+			return "", err
+		}
+		buf := bytes.NewBufferString("")
+		buf.WriteString(Color(item.Name, Cyan))
 		buf.WriteString(" ")
-		buf.WriteString(Color(v.Cmd, Green))
+		buf.WriteString(Color(item.Cmd, Green))
 		buf.WriteString(" ")
-		buf.WriteString(Color(strings.Join(v.Args, " "), Green))
+		buf.WriteString(Color(strings.Join(item.Args, " "), Green))
 		buf.WriteString("\n")
+		cmds = buf.String()
 	}
-	cmds = buf.String()
 	return
 }
 
@@ -366,8 +381,31 @@ func doStateCommend(cmd string, cms []string) (result string, err error) {
 	buf.WriteString("\n")
 
 	buf.WriteString("\t")
-	buf.WriteString("Time Out:")
-	buf.WriteString(Color(string(_timeOut), Cyan))
+	buf.WriteString("Time Out: ")
+	buf.WriteString(Color(_timeOut.String(), Cyan))
+	buf.WriteString("\n")
+
+	if len(_headers) != 0 {
+		buf.WriteString("\tHeaders:\n")
+		for k, v := range _headers {
+			buf.WriteString("\t")
+			buf.WriteString(k)
+			buf.WriteString(" : ")
+			buf.WriteString(v)
+		}
+		buf.WriteString("\n")
+	}
+
+	if len(_params) != 0 {
+		buf.WriteString("\tForms:\n")
+		for k, v := range _params {
+			buf.WriteString("\t")
+			buf.WriteString(k)
+			buf.WriteString(" : ")
+			buf.WriteString(v)
+		}
+		buf.WriteString("\n")
+	}
 
 	result = buf.String()
 

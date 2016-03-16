@@ -140,12 +140,9 @@ func ColorfulJson(str string) string {
 		}
 		prev = char
 	}
-	st := string(rsli)
-	return strings.Replace(st, "\n", "\n\t", 10000)
-	//return string(rsli)
+	return string(rsli)
 }
 
 func ColorfulHTML(str string) string {
 	return Color(str, Green)
 }
-

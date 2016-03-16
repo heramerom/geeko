@@ -21,8 +21,9 @@ import (
 
 	"crypto/tls"
 	"errors"
-	"github.com/astaxie/beego/httplib"
 	"net/url"
+
+	"github.com/astaxie/beego/httplib"
 )
 
 func newBeegoRequest(method string, baseUrl string, url string, headers map[string]string, params map[string]string) (req *httplib.BeegoHTTPRequest, err error) {
@@ -64,10 +65,12 @@ func newBeegoRequest(method string, baseUrl string, url string, headers map[stri
 				return nil, err
 			}
 			req.Body(b)
-		} else if _requestSerialization == "http" {
+		} else if _requestSerialization == "form" {
 			for k, v := range params {
 				req.Param(k, v)
 			}
+		} else if _requestSerialization == "http" {
+			req.Body(m)
 		}
 	}
 
@@ -124,7 +127,7 @@ func formatResponseBody(res *http.Response, httpreq *httplib.BeegoHTTPRequest, p
 	fmt.Println("")
 	if pretty && strings.Contains(res.Header.Get("Content-Type"), "application/json") {
 		var output bytes.Buffer
-		err := json.Indent(&output, body, "", "  ")
+		err := json.Indent(&output, body, "\t", "    ")
 		if err != nil {
 			log.Fatal("Response Json Indent: ", err)
 		}
@@ -146,7 +149,7 @@ func buildParams(reqestSerialization string, params map[string]string) (result s
 		return
 	}
 
-	if reqestSerialization == "http" {
+	if reqestSerialization == "form" {
 		buf := bytes.NewBufferString("")
 		for k, v := range params {
 			buf.WriteString(url.QueryEscape(k))

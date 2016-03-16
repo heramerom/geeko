@@ -12,6 +12,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	__version = "0.0.1"
+	Version = "0.0.1"
 
 	DumpUrl uint16 = 1 << (iota - 1)
 	DumpReqHeader
@@ -31,16 +32,29 @@ const (
 
 var cmdCompleter = readline.NewPrefixCompleter(
 	readline.PcItem("st"),
-	readline.PcItem("get"), readline.PcItem("post"))
+	readline.PcItem("state"),
+	readline.PcItem("set",
+		readline.PcItem("-b"),
+		readline.PcItem("-baseUrl"),
+		readline.PcItem("-t", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("xml"), readline.PcItem("form")),
+		readline.PcItem("-type", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("xml"), readline.PcItem("form")),
+		readline.PcItem("-timeout"),
+		readline.PcItem("-dumpReqParam", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("-dumpReqHeader", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("-dumpResHeader", readline.PcItem("true"), readline.PcItem("false")),
+		readline.PcItem("-dumpResBody", readline.PcItem("true"), readline.PcItem("false"))),
+
+	readline.PcItem("get"),
+	readline.PcItem("post"))
 
 var (
 	_timeOut              = 30 * time.Second
 	_contentJsonRegex     = "application/json"
 	_enableCookie         = false
-	_baseUrl              = "http://localhost:8080" // https://wanna-shop-test.elasticbeanstalk.com:8443
+	_baseUrl              = "http://localhost:8080"
 	_params               = make(map[string]string)
 	_headers              = make(map[string]string)
-	_requestSerialization = "http" // can be http, json, xml
+	_requestSerialization = "form" // can be from, http, json, xml, default form
 
 	DumpOption = DumpUrl | DumpReqHeader | DumpReqParam | DumpResBody | DumpResHeader
 
@@ -56,7 +70,7 @@ var (
 
 func main() {
 
-	fmt.Println(Color("Geeko is a CLI http tools with version:", Cyan), __version)
+	fmt.Println(Color("Geeko is a cURL-like http tools with version:", Yellow), Version)
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:       Color(">>> ", Cyan),
 		HistoryFile:  "/tmp/geeko.history",
@@ -129,7 +143,7 @@ func main() {
 		case "UPLOAD", "DOWNLOAD":
 			result = "Not implemet " + Color(cmd, Red)
 		default:
-			result = Color("ERROR:", Red) + "\n\t" + "unknow command " + Color(cmd, Yellow) + "\n"
+			err = errors.New("unknow command" + Color(cmd, Yellow))
 		}
 		if err != nil {
 			fmt.Println(Color("ERROR:\n\t", Red) + err.Error() + "\n")

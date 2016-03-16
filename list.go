@@ -12,6 +12,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"errors"
 )
 
 var ListItemMap_ map[string]*ListItem
@@ -158,6 +158,21 @@ func ListItems() (lm map[string]*ListItem, err error) {
 	return
 }
 
+func FindListItemsWithName(name string) (item *ListItem, err error) {
+	if len(name) == 0 {
+		err = errors.New("item name can not be nil!")
+		return
+	}
+	for k, v := range ListItemMap_ {
+		if k == name {
+			item = v
+			return
+		}
+	}
+	err = errors.New("can not found list item with name: " + Color(name, Magenta))
+	return
+}
+
 func SaveToList(item ListItem) error {
 	ListItemMap_[item.Name] = &item
 	return save()
@@ -171,7 +186,7 @@ func RemoveItemWithName(name string) error {
 	return save()
 }
 
-func save() error{
+func save() error {
 	path, err := GeekoWorkFilePath()
 	if err != nil {
 		return err

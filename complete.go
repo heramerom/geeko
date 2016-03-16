@@ -27,7 +27,7 @@ func NewListComplete(pc *readline.PrefixCompleter) *ListComplete {
 func (this *ListComplete) Do(line []rune, pos int) (newLine [][]rune, length int) {
 	newLine, length = this.prefixComplete.Do(line, pos)
 	s := strings.TrimSpace(string(line))
-	cms := []string{"list ", "do ", "remove ", "save "}
+	cms := []string{"list ", "ls ", "l ", "do ", "remove ", "save "}
 	var cmd string
 	for _, v := range cms {
 		if strings.HasPrefix(s, v) {
