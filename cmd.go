@@ -227,32 +227,22 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		return
 	}
 
-	hs, err := parseHeader(header)
-	if err != nil {
-		return
-	}
-
-	ps, err := parseParams(param)
-	if err != nil {
-		return
-	}
-
 	urls := f.Args()
 	if len(urls) != 1 {
 		err = errors.New(`usage: [get|post] -h "key:value" -p "key=value" url `)
 		return
 	}
 
-	// save the request
-	LastRequestCmd_ = make([]string, 5)
-	LastRequestCmd_ = append(LastRequestCmd_, method)
-	LastRequestCmd_ = append(LastRequestCmd_, params...)
-
-	req, err := newBeegoRequest(method, _baseUrl, urls[0], hs, ps)
+	req, err := NewBeegoRequest(method, urls[0], header, param, _requestSerialization)
 	if err != nil {
 		return
 	}
 	req.Debug(true)
+
+	// save the request
+	LastRequestCmd_ = make([]string, 5)
+	LastRequestCmd_ = append(LastRequestCmd_, method)
+	LastRequestCmd_ = append(LastRequestCmd_, params...)
 
 	res, err := req.Response()
 	if err != nil {
@@ -263,6 +253,7 @@ func doRequestCommand(method string, params []string) (result string, err error)
 	dump := req.DumpRequest()
 	dps := strings.Split(string(dump), "\n")
 	for i, line := range dps {
+		println(line)
 		if len(strings.Trim(line, "\r\n ")) == 0 {
 			dumpBody = []byte(strings.Join(dps[i:], "\n"))
 			break

@@ -36,8 +36,8 @@ var cmdCompleter = readline.NewPrefixCompleter(
 	readline.PcItem("set",
 		readline.PcItem("-b"),
 		readline.PcItem("-baseUrl"),
-		readline.PcItem("-t", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("xml"), readline.PcItem("form")),
-		readline.PcItem("-type", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("xml"), readline.PcItem("form")),
+		readline.PcItem("-t", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("form")),
+		readline.PcItem("-type", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("form")),
 		readline.PcItem("-timeout"),
 		readline.PcItem("-dumpReqParam", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("-dumpReqHeader", readline.PcItem("true"), readline.PcItem("false")),
@@ -54,7 +54,7 @@ var (
 	_baseUrl              = "http://localhost:8080"
 	_params               = make(map[string]string)
 	_headers              = make(map[string]string)
-	_requestSerialization = "form" // can be from, http, json, xml, default form
+	_requestSerialization = "form" // can be from, http, json, default form
 
 	DumpOption = DumpUrl | DumpReqHeader | DumpReqParam | DumpResBody | DumpResHeader
 

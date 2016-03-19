@@ -26,6 +26,77 @@ import (
 	"github.com/astaxie/beego/httplib"
 )
 
+func NewBeegoRequest(method string, url string, header string, param string, serialization string) (req *httplib.BeegoHTTPRequest, err error) {
+	url = buildUrl(_baseUrl, url)
+	if len(url) == 0 {
+		err = errors.New("request url can not be empty")
+		return
+	}
+
+	hs, err := parseHeader(header)
+	if err != nil {
+		return
+	}
+	hs = joinMap(_headers, hs)
+
+	ps, err := parseParams(param)
+	if err != nil {
+		return
+	}
+	ps = joinMap(_params, ps)
+
+	method = strings.ToUpper(method)
+
+	if method == "GET" {
+		var query string
+		if serialization == "http" {
+			query = param
+		} else if serialization == "form" {
+			query = BuildFormPrams(ps)
+		}
+		if len(query) != 0 {
+			url = url + "?" + query
+		}
+	}
+	req = httplib.NewBeegoRequest(url, method)
+	req.Header("Accept-Encoding", "gzip, deflate")
+	req.Header("Accept", "*/*")
+	if len(_user) != 0 {
+		req.GetRequest().SetBasicAuth(_user, _pwd)
+	}
+
+	for k, v := range hs {
+		req.Header(k, v)
+	}
+
+	req.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // ignore https
+
+	if method == "POST" {
+		if serialization == "json" {
+			req.JSONBody(ps)
+		} else if serialization == "form" {
+			for k, v := range ps {
+				req.Param(k, v)
+			}
+		} else if serialization == "http" {
+			req.Body(param)
+		}
+	}
+	return
+}
+
+func BuildFormPrams(m map[string]string) (body string) {
+	buf := bytes.NewBufferString("")
+	for k, v := range m {
+		buf.WriteString(url.QueryEscape(k))
+		buf.WriteString("=")
+		buf.WriteString(url.QueryEscape(v))
+		buf.WriteString("&")
+	}
+	body = buf.String()
+	return
+}
+
 func newBeegoRequest(method string, baseUrl string, url string, headers map[string]string, params map[string]string) (req *httplib.BeegoHTTPRequest, err error) {
 	u := buildUrl(baseUrl, url)
 	m := joinMap(_params, params)
