@@ -86,6 +86,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	var timeout int64
 	var perty bool
 	var user, pwd string
+	var enableCookie bool
 
 	var dumpReqHeader, dumpResHeader, dumpReqParam, dumpResBody bool
 
@@ -101,6 +102,8 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	f.StringVar(&pwd, "p", "", "password")
 	f.StringVar(&pwd, "pwd", "", "password")
 	f.StringVar(&pwd, "password", "", "pwssword")
+
+	f.BoolVar(&enableCookie, "-enableCookie", true, "enable cookie")
 
 	f.BoolVar(&dumpReqHeader, "dumpReqHeader", true, "dump req header")
 	f.BoolVar(&dumpReqParam, "dumpReqParam", true, "dump req params")
@@ -132,6 +135,13 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 			buf.WriteString("\tset password " + pwd + " success")
 		case "perty":
 			_perty = perty
+		case "enableCookie":
+			EnableCookie = enableCookie
+			s := "ON"
+			if !enableCookie {
+				s = "OFF"
+			}
+			buf.WriteString("\tset enableCookie " + s)
 		case "dumpReqHeader":
 			dump := DumpReqHeader
 			s := "ON"

@@ -39,6 +39,7 @@ var cmdCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("-t", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("form")),
 		readline.PcItem("-type", readline.PcItem("http"), readline.PcItem("json"), readline.PcItem("form")),
 		readline.PcItem("-timeout"),
+		readline.PcItem("-enableCookie"),
 		readline.PcItem("-dumpReqParam", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("-dumpReqHeader", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("-dumpResHeader", readline.PcItem("true"), readline.PcItem("false")),
@@ -55,6 +56,7 @@ var (
 	_params               = make(map[string]string)
 	_headers              = make(map[string]string)
 	_requestSerialization = "form" // can be from, http, json, default form
+	EnableCookie          = true
 
 	DumpOption = DumpUrl | DumpReqHeader | DumpReqParam | DumpResBody | DumpResHeader
 

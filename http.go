@@ -61,6 +61,7 @@ func NewBeegoRequest(method string, url string, header string, param string, ser
 	req = httplib.NewBeegoRequest(url, method)
 	req.Header("Accept-Encoding", "gzip, deflate")
 	req.Header("Accept", "*/*")
+	req.SetEnableCookie(EnableCookie)
 	if len(_user) != 0 {
 		req.GetRequest().SetBasicAuth(_user, _pwd)
 	}
