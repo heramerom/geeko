@@ -88,7 +88,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	var user, pwd string
 	var enableCookie bool
 
-	var dumpReqHeader, dumpResHeader, dumpReqParam, dumpResBody bool
+	var dumpUrl, dumpReqHeader, dumpResHeader, dumpReqParam, dumpResBody bool
 
 	f := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	f.StringVar(&reqType, "t", "", "request type, can be http, json, xml, default http.")
@@ -103,8 +103,9 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	f.StringVar(&pwd, "pwd", "", "password")
 	f.StringVar(&pwd, "password", "", "pwssword")
 
-	f.BoolVar(&enableCookie, "-enableCookie", true, "enable cookie")
+	f.BoolVar(&enableCookie, "enableCookie", true, "enable cookie")
 
+	f.BoolVar(&dumpUrl, "dumpUrl", true, "dump url")
 	f.BoolVar(&dumpReqHeader, "dumpReqHeader", true, "dump req header")
 	f.BoolVar(&dumpReqParam, "dumpReqParam", true, "dump req params")
 	f.BoolVar(&dumpResHeader, "dumpResHeader", true, "dump res header")
@@ -142,6 +143,15 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 				s = "OFF"
 			}
 			buf.WriteString("\tset enableCookie " + s)
+		case "dumpUrl":
+			dump := DumpUrl
+			s := "ON"
+			if !dumpUrl {
+				dump = ^DumpUrl
+				s = "OFF"
+			}
+			DumpOption = DumpOption & dump
+			buf.WriteString("\tset DumpUrl " + s)
 		case "dumpReqHeader":
 			dump := DumpReqHeader
 			s := "ON"
@@ -149,7 +159,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 				dump = ^DumpReqHeader
 				s = "OFF"
 			}
-			DumpOption = DumpOption | dump
+			DumpOption = DumpOption & dump
 			buf.WriteString("\tset DumpReqHeader " + s)
 		case "dumpReqParam":
 			dump := DumpReqParam
@@ -158,7 +168,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 				dump = ^DumpReqParam
 				s = "OFF"
 			}
-			DumpOption = DumpOption | dump
+			DumpOption = DumpOption & dump
 			buf.WriteString("\tset DumpReqParam " + s)
 		case "dumpResHeader":
 			dump := DumpResHeader
@@ -167,7 +177,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 				dump = ^DumpResHeader
 				s = "OFF"
 			}
-			DumpOption = DumpOption | dump
+			DumpOption = DumpOption & dump
 			buf.WriteString("\tset DumpResHeader " + s)
 		case "dumpResBody":
 			dump := DumpResBody
@@ -176,7 +186,7 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 				dump = ^DumpResBody
 				s = "OFF"
 			}
-			DumpOption = DumpOption | dump
+			DumpOption = DumpOption & dump
 			buf.WriteString("\tset DumpResBody " + s)
 		}
 	})
