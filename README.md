@@ -1,7 +1,7 @@
 # geeko
 A cURL-Like command line tool!
 
-Some times I send a patch requests with common url, params, headers and so on. Use [cURL](https://github.com/curl/curl), [Httpie](https://github.com/jkbrzt/httpie), [bat](https://github.com/astaxie/bat), I have to write the save word for each request, Even if the url is lang and lang. So I wort this.
+Some times I send a patch requests with common url, params, headers and so on. Use [cURL](https://github.com/curl/curl), [Httpie](https://github.com/jkbrzt/httpie), [bat](https://github.com/astaxie/bat), have to write the same syntax for each request, Even if the url is lang and lang. So I wort this.
 
 ##set command
 	usage:
