@@ -44,30 +44,27 @@ var cmdCompleter = readline.NewPrefixCompleter(
 		readline.PcItem("-dumpReqHeader", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("-dumpResHeader", readline.PcItem("true"), readline.PcItem("false")),
 		readline.PcItem("-dumpResBody", readline.PcItem("true"), readline.PcItem("false"))),
-
+	readline.PcItem("save", readline.PcItem("-s=true")),
+	readline.PcItem("ls", readline.PcItem("-s=true")),
 	readline.PcItem("get"),
 	readline.PcItem("post"))
 
 var (
-	_timeOut              = 30 * time.Second
-	_contentJsonRegex     = "application/json"
-	_enableCookie         = false
-	_baseUrl              = "http://localhost:8080"
-	_params               = make(map[string]string)
-	_headers              = make(map[string]string)
-	_requestSerialization = "form" // can be from, http, json, default form
-	EnableCookie          = true
+	TimeOut       = 30 * time.Second
+	BaseUrl       = "http://localhost:8080"
+	Params        = make(map[string]string)
+	Headers       = make(map[string]string)
+	Serialization = "form" // can be from, http, json, default form
+	EnableCookie  = true
 
 	DumpOption = DumpUrl | DumpReqHeader | DumpReqParam | DumpResBody | DumpResHeader
 
-	_user string
-	_pwd  string
+	User string
+	Pwd  string
 
-	_perty bool
+	LastOutput string
 
-	_lastOutput string
-
-	LastRequestCmd_ []string
+	LastRequestCmd []string
 )
 
 func main() {
@@ -134,8 +131,10 @@ func main() {
 			result, err = doListCommand(cmd, cms)
 		case "HELP", "H":
 			result, err = doHelpCommand(cmd, cms)
+		case "USE":
+			result, err = doUseCommand(cmd, cms)
 		case "DO":
-			result, err = doDoListCommand(cmd, cms)
+			result, err = doListCommand(cmd, cms)
 		case "REMOVE":
 			result, err = doRemoveCommand(cmd, cms)
 		case "CO", "COPY":

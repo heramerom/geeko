@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"strings"
 	"time"
 
@@ -52,7 +53,7 @@ func doAddCommand(cmd string, cms []string) (result string, err error) {
 			buf.WriteString(Color("Add Header:\n", Yellow))
 		}
 		for k, v := range hs {
-			_headers[k] = v
+			Headers[k] = v
 			buf.WriteString("\t" + k + " : " + v + "\n")
 		}
 	}
@@ -61,7 +62,7 @@ func doAddCommand(cmd string, cms []string) (result string, err error) {
 			buf.WriteString(Color("Add Params:\n", Yellow))
 		}
 		for k, v := range ps {
-			_params[k] = v
+			Params[k] = v
 			buf.WriteString("\t" + k + " : " + v + "\n")
 		}
 	}
@@ -69,14 +70,30 @@ func doAddCommand(cmd string, cms []string) (result string, err error) {
 }
 
 func doSaveCommand(cmd string, cms []string) (result string, err error) {
-	if len(cms) != 1 {
-		err = errors.New("Usage: [s|save] name #save the last request command to list")
+	var isSchema bool
+	f := flag.NewFlagSet(cmd, flag.ContinueOnError)
+	f.BoolVar(&isSchema, "schema", false, "save a schema")
+	f.BoolVar(&isSchema, "s", false, "save a schema")
+	err = f.Parse(cms)
+	if err != nil {
 		return
 	}
-	cs := append(cms, LastRequestCmd_...)
-	item := NewListItemWithArgs(cs)
-	SaveToList(*item)
-	result = Color("Save:\n\t", Yellow) + strings.Join(cs, " ")
+	if isSchema {
+		schema := NewSchema(f.Arg(0), BaseUrl, User, Pwd, TimeOut, Headers, Params)
+		err = SaveSchemes(schema.Name, schema)
+		if err != nil {
+			return
+		}
+		result = Color("Save Schema:\n\t", Yellow) + schema.String()
+	} else {
+		cs := append(cms, LastRequestCmd...)
+		item := NewCmdItemWithArgs(cs)
+		err = SaveToList(*item)
+		if err != nil {
+			return
+		}
+		result = Color("Save:\n\t", Yellow) + strings.Join(cs, " ")
+	}
 	return
 }
 
@@ -121,21 +138,19 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	f.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "t", "type":
-			_requestSerialization = reqType
+			Serialization = reqType
 			buf.WriteString("\tset Request Serialization with " + Color(reqType, Cyan) + " type success")
 		case "b", "base":
-			_baseUrl = baseUrl
+			BaseUrl = baseUrl
 			buf.WriteString("\tset base url " + baseUrl + " success")
 		case "timeout":
-			_timeOut = time.Duration(timeout)
+			TimeOut = time.Duration(timeout)
 		case "u", "user":
-			_user = user
+			User = user
 			buf.WriteString("\tset user " + user + " success")
 		case "p", "pwd", "password":
-			_pwd = pwd
+			Pwd = pwd
 			buf.WriteString("\tset password " + pwd + " success")
-		case "perty":
-			_perty = perty
 		case "enableCookie":
 			EnableCookie = enableCookie
 			s := "ON"
@@ -194,40 +209,58 @@ func doSetCommand(cmd string, cms []string) (result string, err error) {
 	return
 }
 
-func doListCommand(cmd string, cms []string) (cmds string, err error) {
-	if len(cms) > 1 {
-		err = errors.New("Usage: [list|ls|l] name")
-	}
+func doListCommand(cmd string, cms []string) (result string, err error) {
 
-	items, err := ListItems()
+	var isSchema bool
+	f := flag.NewFlagSet(cmd, flag.ContinueOnError)
+	f.BoolVar(&isSchema, "schema", false, "save a schema")
+	f.BoolVar(&isSchema, "s", false, "save a schema")
+	err = f.Parse(cms)
 	if err != nil {
 		return
 	}
 
-	if len(cms) == 0 {
-		buf := bytes.NewBufferString("")
-		for _, v := range items {
-			buf.WriteString(Color(v.Name, Cyan))
-			buf.WriteString(" ")
-			buf.WriteString(Color(v.Cmd, Green))
-			buf.WriteString(" ")
-			buf.WriteString(Color(strings.Join(v.Args, " "), Green))
-			buf.WriteString("\n")
-		}
-		cmds = buf.String()
-	} else {
-		item, err := FindListItemsWithName(cms[0])
+	if isSchema {
+		schemas, err := SchemaLists()
 		if err != nil {
 			return "", err
 		}
-		buf := bytes.NewBufferString("")
-		buf.WriteString(Color(item.Name, Cyan))
-		buf.WriteString(" ")
-		buf.WriteString(Color(item.Cmd, Green))
-		buf.WriteString(" ")
-		buf.WriteString(Color(strings.Join(item.Args, " "), Green))
-		buf.WriteString("\n")
-		cmds = buf.String()
+		fmt.Println("schema", schemas)
+		for _, v := range schemas {
+			result = result + v.String() + "\n"
+		}
+		return result, err
+
+	} else {
+		items, err := CmdItemLists()
+		if err != nil {
+			return "", err
+		}
+		if len(cms) == 0 {
+			buf := bytes.NewBufferString("")
+			for _, v := range items {
+				buf.WriteString(Color(v.Name, Cyan))
+				buf.WriteString(" ")
+				buf.WriteString(Color(v.Cmd, Green))
+				buf.WriteString(" ")
+				buf.WriteString(Color(strings.Join(v.Args, " "), Green))
+				buf.WriteString("\n")
+			}
+			result = buf.String()
+		} else {
+			item, err := FindCmdItemsWithName(cms[0])
+			if err != nil {
+				return "", err
+			}
+			buf := bytes.NewBufferString("")
+			buf.WriteString(Color(item.Name, Cyan))
+			buf.WriteString(" ")
+			buf.WriteString(Color(item.Cmd, Green))
+			buf.WriteString(" ")
+			buf.WriteString(Color(strings.Join(item.Args, " "), Green))
+			buf.WriteString("\n")
+			result = buf.String()
+		}
 	}
 	return
 }
@@ -253,28 +286,29 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		return
 	}
 
-	req, err := NewBeegoRequest(method, urls[0], header, param, _requestSerialization)
+	req, err := NewBeegoRequest(method, urls[0], header, param, Serialization)
 	if err != nil {
 		return
 	}
 	req.Debug(true)
 
 	// save the request
-	LastRequestCmd_ = make([]string, 5)
-	LastRequestCmd_ = append(LastRequestCmd_, method)
-	LastRequestCmd_ = append(LastRequestCmd_, params...)
+	LastRequestCmd = make([]string, 5)
+	LastRequestCmd = append(LastRequestCmd, method)
+	LastRequestCmd = append(LastRequestCmd, params...)
 
 	res, err := req.Response()
 	if err != nil {
 		return
 	}
 
-	var dumpBody []byte
+	var dumpHeader, dumpBody []byte
 	dump := req.DumpRequest()
 	dps := strings.Split(string(dump), "\n")
 	for i, line := range dps {
 		println(line)
 		if len(strings.Trim(line, "\r\n ")) == 0 {
+			dumpHeader = []byte(strings.Join(dps[:i], "\n"))
 			dumpBody = []byte(strings.Join(dps[i:], "\n"))
 			break
 		}
@@ -292,6 +326,8 @@ func doRequestCommand(method string, params []string) (result string, err error)
 
 	if DumpOption&DumpReqHeader == DumpReqHeader {
 		buf.WriteString(Color("Request Header:\n", Yellow))
+		lines := strings.Split(string(dumpHeader), "\n")
+		fmt.Println(lines)
 		for k, v := range res.Request.Header {
 			buf.WriteString("\t")
 			buf.WriteString(k)
@@ -331,7 +367,7 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		buf.WriteString(Color("Response Body:\n", Yellow))
 		buf.WriteString("\t")
 		body := formatResponseBody(res, req, true)
-		_lastOutput = body
+		LastOutput = body
 		buf.WriteString(ColorfulResponse(body, res.Header.Get("Content-Type")))
 		buf.WriteString("\n")
 	}
@@ -340,11 +376,31 @@ func doRequestCommand(method string, params []string) (result string, err error)
 }
 
 func doCopyCommand(cmd string, cms []string) (res string, err error) {
-	err = clipboard.WriteAll(_lastOutput)
+	err = clipboard.WriteAll(LastOutput)
 	if err != nil {
 		return
 	}
 	res = "\tsuccess to copy the body"
+	return
+}
+
+func doUseCommand(cmd string, cms []string) (res string, err error) {
+	if len(cms) != 1 {
+		err = errors.New("Usage:\n\tuse [schema name]")
+		return
+	}
+	schema := SchemaWithName(cms[0])
+	if schema == nil {
+		err = errors.New("Error:\n\tcan not find schema with name " + cms[0])
+		return
+	}
+	BaseUrl = schema.Url
+	TimeOut = schema.Timeout
+	User = schema.User
+	Pwd = schema.Pwd
+	Headers = schema.Headers
+	Params = schema.Params
+	res = "Use schema success"
 	return
 }
 
@@ -357,48 +413,27 @@ func doRemoveCommand(cmd string, cms []string) (res string, err error) {
 	return
 }
 
-func doDoListCommand(cmd string, cms []string) (string, error) {
-
-	if len(cms) == 0 {
-		return "", errors.New("Usage:\n\tdo list-name")
-	}
-
-	name := cms[0]
-
-	items, err := ListItems()
-	if err != nil {
-		return "", err
-	}
-	for k, v := range items {
-		if k == name {
-			return doRequestCommand(v.Cmd, v.Args)
-		}
-	}
-
-	return "", errors.New("can not find list name " + Color(name, Red))
-}
-
 func doStateCommend(cmd string, cms []string) (result string, err error) {
 
 	buf := bytes.NewBufferString(Color("State:\n", Yellow))
 	buf.WriteString("\t")
 	buf.WriteString("Base Url: ")
-	buf.WriteString(Color(_baseUrl, Cyan))
+	buf.WriteString(Color(BaseUrl, Cyan))
 	buf.WriteString("\n")
 
 	buf.WriteString("\t")
 	buf.WriteString("Request Serialization: ")
-	buf.WriteString(Color(_requestSerialization, Cyan))
+	buf.WriteString(Color(Serialization, Cyan))
 	buf.WriteString("\n")
 
 	buf.WriteString("\t")
 	buf.WriteString("Time Out: ")
-	buf.WriteString(Color(_timeOut.String(), Cyan))
+	buf.WriteString(Color(TimeOut.String(), Cyan))
 	buf.WriteString("\n")
 
-	if len(_headers) != 0 {
+	if len(Headers) != 0 {
 		buf.WriteString("\tHeaders:\n")
-		for k, v := range _headers {
+		for k, v := range Headers {
 			buf.WriteString("\t")
 			buf.WriteString(k)
 			buf.WriteString(" : ")
@@ -407,9 +442,9 @@ func doStateCommend(cmd string, cms []string) (result string, err error) {
 		buf.WriteString("\n")
 	}
 
-	if len(_params) != 0 {
+	if len(Params) != 0 {
 		buf.WriteString("\tForms:\n")
-		for k, v := range _params {
+		for k, v := range Params {
 			buf.WriteString("\t")
 			buf.WriteString(k)
 			buf.WriteString(" : ")

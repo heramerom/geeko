@@ -48,7 +48,7 @@ func ColorfulRequest(str string) string {
 }
 
 func ColorfulResponse(str, contenttype string) string {
-	if strings.Contains(contenttype, _contentJsonRegex) {
+	if strings.Contains(contenttype, "application/json") {
 		str = ColorfulJson(str)
 	} else {
 		str = ColorfulHTML(str)

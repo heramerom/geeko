@@ -27,7 +27,7 @@ import (
 )
 
 func NewBeegoRequest(method string, url string, header string, param string, serialization string) (req *httplib.BeegoHTTPRequest, err error) {
-	url = buildUrl(_baseUrl, url)
+	url = buildUrl(BaseUrl, url)
 	if len(url) == 0 {
 		err = errors.New("request url can not be empty")
 		return
@@ -37,13 +37,13 @@ func NewBeegoRequest(method string, url string, header string, param string, ser
 	if err != nil {
 		return
 	}
-	hs = joinMap(_headers, hs)
+	hs = joinMap(Headers, hs)
 
 	ps, err := parseParams(param)
 	if err != nil {
 		return
 	}
-	ps = joinMap(_params, ps)
+	ps = joinMap(Params, ps)
 
 	method = strings.ToUpper(method)
 
@@ -62,8 +62,8 @@ func NewBeegoRequest(method string, url string, header string, param string, ser
 	req.Header("Accept-Encoding", "gzip, deflate")
 	req.Header("Accept", "*/*")
 	req.SetEnableCookie(EnableCookie)
-	if len(_user) != 0 {
-		req.GetRequest().SetBasicAuth(_user, _pwd)
+	if len(User) != 0 {
+		req.GetRequest().SetBasicAuth(User, Pwd)
 	}
 
 	for k, v := range hs {
@@ -100,12 +100,12 @@ func BuildFormPrams(m map[string]string) (body string) {
 
 func newBeegoRequest(method string, baseUrl string, url string, headers map[string]string, params map[string]string) (req *httplib.BeegoHTTPRequest, err error) {
 	u := buildUrl(baseUrl, url)
-	m := joinMap(_params, params)
+	m := joinMap(Params, params)
 
 	method = strings.ToUpper(method)
 
 	if method == "GET" {
-		p, err := buildParams(_requestSerialization, m)
+		p, err := buildParams(Serialization, m)
 		if err != nil {
 			return nil, err
 		}
@@ -117,11 +117,11 @@ func newBeegoRequest(method string, baseUrl string, url string, headers map[stri
 	req = httplib.NewBeegoRequest(u, method)
 	req.Header("Accept-Encoding", "gzip, deflate")
 	req.Header("Accept", "*/*")
-	if len(_user) != 0 {
-		req.GetRequest().SetBasicAuth(_user, _pwd)
+	if len(User) != 0 {
+		req.GetRequest().SetBasicAuth(User, Pwd)
 	}
 
-	h := joinMap(headers, _headers)
+	h := joinMap(headers, Headers)
 	for k, v := range h {
 		req.Header(k, v)
 	}
@@ -129,19 +129,19 @@ func newBeegoRequest(method string, baseUrl string, url string, headers map[stri
 	req.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // ignore https
 
 	if method == "POST" {
-		if _requestSerialization == "json" {
+		if Serialization == "json" {
 			req.JSONBody(m)
-		} else if _requestSerialization == "xml" {
+		} else if Serialization == "xml" {
 			b, err := xmlBody(m)
 			if err != nil {
 				return nil, err
 			}
 			req.Body(b)
-		} else if _requestSerialization == "form" {
+		} else if Serialization == "form" {
 			for k, v := range params {
 				req.Param(k, v)
 			}
-		} else if _requestSerialization == "http" {
+		} else if Serialization == "http" {
 			req.Body(m)
 		}
 	}

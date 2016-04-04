@@ -36,7 +36,7 @@ func (this *ListComplete) Do(line []rune, pos int) (newLine [][]rune, length int
 	}
 	if len(cmd) != 0 {
 		sub := string(line[len(cmd):])
-		for k, _ := range ListItemMap_ {
+		for k, _ := range CmdItems {
 			if strings.HasPrefix(k, sub) {
 				newLine = append(newLine, []rune(k[pos-len(cmd):]))
 			}

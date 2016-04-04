@@ -11,28 +11,47 @@
 package main
 
 import (
-	"bytes"
+	"encoding/gob"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
-	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
-var ListItemMap_ map[string]*ListItem
+var CmdItems = make(map[string]*CmdItem)
+var Schemas = make(map[string]*Schema)
 
 func init() {
-	ListItemMap_ = make(map[string]*ListItem)
-	ListItems()
+
+	items, _ := CmdItemLists()
+	for k, v := range items {
+		CmdItems[k] = v
+	}
+
+	schemas, _ := SchemaLists()
+	for k, v := range schemas {
+		Schemas[k] = v
+	}
+
 }
 
-type ListItem struct {
+type CmdItem struct {
 	Name string
 	Cmd  string
 	Args []string
+}
+
+type Schema struct {
+	Name    string
+	Url     string
+	User    string
+	Pwd     string
+	Timeout time.Duration
+	Headers map[string]string
+	Params  map[string]string
 }
 
 func UserHomePath() (path string, err error) {
@@ -63,43 +82,60 @@ func GeekoWorkPath() (path string, err error) {
 	if CheckFileExist(p) {
 		return p, nil
 	}
-	err = os.Mkdir(p, 0777)
+	err = os.Mkdir(p, 0666)
 	if err != nil {
 		return
 	}
 	return p, nil
 }
 
-func GeekoWorkFilePath() (path string, err error) {
+func GeekoWorkReqFilPath() (path string, err error) {
 	tmp, err := GeekoWorkPath()
 	if err != nil {
 		return
 	}
 	if runtime.GOOS == "windows" {
-		path = tmp + "\\request.list"
+		path = tmp + "\\req.gob"
 	} else {
-		path = tmp + "/request.list"
+		path = tmp + "/req.gob"
 	}
 	return
 }
 
-func NewListItem(name string, cmd string, args []string) *ListItem {
-	return &ListItem{
+func GeekoWorkSchemaFilePath() (path string, err error) {
+	tmp, err := GeekoWorkPath()
+	if err != nil {
+		return
+	}
+	if runtime.GOOS == "windows" {
+		path = tmp + "\\schema.gob"
+	} else {
+		path = tmp + "/schema.gob"
+	}
+	return
+}
+
+func NewCmdItem(name string, cmd string, args []string) *CmdItem {
+	return &CmdItem{
 		Name: name,
 		Cmd:  cmd,
 		Args: args,
 	}
 }
 
-func NewListItemWithLine(line string) *ListItem {
-	if line == "" {
-		return nil
+func NewSchema(name string, url string, user string, pwd string, timeout time.Duration, headers map[string]string, params map[string]string) *Schema {
+	return &Schema{
+		Name:    name,
+		Url:     url,
+		User:    user,
+		Pwd:     pwd,
+		Timeout: timeout,
+		Headers: headers,
+		Params:  params,
 	}
-	args := strings.Split(line, " ")
-	return NewListItemWithArgs(args)
 }
 
-func NewListItemWithArgs(args []string) *ListItem {
+func NewCmdItemWithArgs(args []string) *CmdItem {
 	if len(args) < 2 {
 		return nil
 	}
@@ -110,60 +146,64 @@ func NewListItemWithArgs(args []string) *ListItem {
 	} else {
 		args = nil
 	}
-	return &ListItem{
+	return &CmdItem{
 		Name: name,
 		Cmd:  cmd,
 		Args: args,
 	}
 }
 
-func (this *ListItem) String() string {
-	str := this.Name + " " + this.Cmd + " " + strings.Join(this.Args, " ")
-	reg, err := regexp.Compile("[ ]+")
-	if err != nil {
-		return str
-	}
-	str = reg.ReplaceAllString(str, " ")
-	return str
+func (this *Schema) String() string {
+	return this.Name + " " + this.Url
 }
 
-func ListLines() (line []string, err error) {
-	path, err := GeekoWorkFilePath()
-	if err != nil {
-		return
-	}
+func (this *CmdItem) String() string {
+	return this.Name + " " + this.Cmd + " " + strings.Join(this.Args, " ")
+}
 
-	bs, err := readFile(path)
+func CmdItemLists() (lm map[string]*CmdItem, err error) {
+	path, err := GeekoWorkReqFilPath()
 	if err != nil {
-		return
+		return nil, err
 	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-	line = strings.Split(string(bs), "\n")
+	enc := gob.NewDecoder(file)
+	err = enc.Decode(&lm)
 	return
 }
 
-func ListItems() (lm map[string]*ListItem, err error) {
-	lines, err := ListLines()
+func SchemaLists() (lists map[string]*Schema, err error) {
+	path, err := GeekoWorkSchemaFilePath()
 	if err != nil {
 		return
 	}
-	for _, v := range lines {
-		item := NewListItemWithLine(v)
-		if item == nil {
-			continue
-		}
-		ListItemMap_[item.Name] = item
+	file, err := os.Open(path)
+	if err != nil {
+		return
 	}
-	lm = ListItemMap_
+	var sm map[string]*Schema
+	dec := gob.NewDecoder(file)
+
+	e := dec.Decode(&sm)
+	if e != nil && e != io.EOF {
+		err = e
+		return
+	}
+	lists = sm
 	return
 }
 
-func FindListItemsWithName(name string) (item *ListItem, err error) {
+func FindCmdItemsWithName(name string) (item *CmdItem, err error) {
 	if len(name) == 0 {
 		err = errors.New("item name can not be nil!")
 		return
 	}
-	for k, v := range ListItemMap_ {
+	for k, v := range CmdItems {
 		if k == name {
 			item = v
 			return
@@ -173,73 +213,53 @@ func FindListItemsWithName(name string) (item *ListItem, err error) {
 	return
 }
 
-func SaveToList(item ListItem) error {
-	ListItemMap_[item.Name] = &item
-	return save()
+func SaveSchemes(name string, s *Schema) error {
+	Schemas[name] = s
+	return saveScheme(Schemas)
+}
+
+func SaveToList(item CmdItem) error {
+	CmdItems[item.Name] = &item
+	return saveCmdItems(CmdItems)
 }
 
 func RemoveItemWithName(name string) error {
 	if len(name) == 0 {
 		return errors.New("item name can not be empty")
 	}
-	delete(ListItemMap_, name)
-	return save()
+	delete(CmdItems, name)
+	return saveCmdItems(CmdItems)
 }
 
-func save() error {
-	path, err := GeekoWorkFilePath()
+func SchemaWithName(name string) *Schema {
+	return Schemas[name];
+}
+
+func saveCmdItems(items map[string]*CmdItem) error {
+	path, err := GeekoWorkReqFilPath()
 	if err != nil {
 		return err
 	}
-	buf := bytes.NewBufferString("")
-	for _, v := range ListItemMap_ {
-		buf.WriteString(v.String() + "\n")
+	file, err := os.Create(path)
+	if err != nil {
+		return err
 	}
-	err = ioutil.WriteFile(path, buf.Bytes(), 0)
+	defer file.Close()
+	enc := gob.NewEncoder(file)
+	err = enc.Encode(items)
 	return err
 }
 
-func ListCommands() (ls []string, err error) {
-	path, err := GeekoWorkFilePath()
+func saveScheme(schemcs map[string]*Schema) error {
+	path, err := GeekoWorkSchemaFilePath()
 	if err != nil {
-		return
+		return err
 	}
-	bs, err := ioutil.ReadFile(path)
+	file, err := os.Create(path)
 	if err != nil {
-		return
+		return err
 	}
-	ls = strings.Split(string(bs), "\n")
-	return
-}
-
-func readFile(filename string) ([]byte, error) {
-	f, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0777)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var n int64
-	if fi, err := f.Stat(); err == nil {
-		if size := fi.Size(); size < 1e9 {
-			n = size
-		}
-	}
-	return readAll(f, n+bytes.MinRead)
-}
-
-func readAll(r io.Reader, capacity int64) (b []byte, err error) {
-	buf := bytes.NewBuffer(make([]byte, 0, capacity))
-	defer func() {
-		e := recover()
-		if e == nil {
-			return
-		}
-		if panicErr, ok := e.(error); ok && panicErr == bytes.ErrTooLarge {
-			err = panicErr
-		} else {
-			panic(e)
-		}
-	}()
-	_, err = buf.ReadFrom(r)
-	return buf.Bytes(), err
+	enc := gob.NewEncoder(file)
+	err = enc.Encode(schemcs)
+	return err
 }
