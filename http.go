@@ -98,57 +98,6 @@ func BuildFormPrams(m map[string]string) (body string) {
 	return
 }
 
-func newBeegoRequest(method string, baseUrl string, url string, headers map[string]string, params map[string]string) (req *httplib.BeegoHTTPRequest, err error) {
-	u := buildUrl(baseUrl, url)
-	m := joinMap(Params, params)
-
-	method = strings.ToUpper(method)
-
-	if method == "GET" {
-		p, err := buildParams(Serialization, m)
-		if err != nil {
-			return nil, err
-		}
-		if strings.HasSuffix(u, "?") {
-			u = u[:len(u)-1]
-		}
-		u = u + "?" + p
-	}
-	req = httplib.NewBeegoRequest(u, method)
-	req.Header("Accept-Encoding", "gzip, deflate")
-	req.Header("Accept", "*/*")
-	if len(User) != 0 {
-		req.GetRequest().SetBasicAuth(User, Pwd)
-	}
-
-	h := joinMap(headers, Headers)
-	for k, v := range h {
-		req.Header(k, v)
-	}
-
-	req.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // ignore https
-
-	if method == "POST" {
-		if Serialization == "json" {
-			req.JSONBody(m)
-		} else if Serialization == "xml" {
-			b, err := xmlBody(m)
-			if err != nil {
-				return nil, err
-			}
-			req.Body(b)
-		} else if Serialization == "form" {
-			for k, v := range params {
-				req.Param(k, v)
-			}
-		} else if Serialization == "http" {
-			req.Body(m)
-		}
-	}
-
-	return
-}
-
 func xmlBody(m map[string]string) (b []byte, err error) {
 	str, err := xml.Marshal(m)
 	if err != nil {

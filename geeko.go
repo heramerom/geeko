@@ -134,7 +134,7 @@ func main() {
 		case "USE":
 			result, err = doUseCommand(cmd, cms)
 		case "DO":
-			result, err = doListCommand(cmd, cms)
+			result, err = doDoListCommand(cmd, cms)
 		case "REMOVE":
 			result, err = doRemoveCommand(cmd, cms)
 		case "CO", "COPY":

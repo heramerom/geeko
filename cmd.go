@@ -14,7 +14,6 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"fmt"
 	"strings"
 	"time"
 
@@ -225,7 +224,6 @@ func doListCommand(cmd string, cms []string) (result string, err error) {
 		if err != nil {
 			return "", err
 		}
-		fmt.Println("schema", schemas)
 		for _, v := range schemas {
 			result = result + v.String() + "\n"
 		}
@@ -302,13 +300,14 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		return
 	}
 
-	var dumpHeader, dumpBody []byte
+	//var dumpHeader, dumpBody []byte
+	var dumpBody []byte
 	dump := req.DumpRequest()
 	dps := strings.Split(string(dump), "\n")
 	for i, line := range dps {
 		println(line)
 		if len(strings.Trim(line, "\r\n ")) == 0 {
-			dumpHeader = []byte(strings.Join(dps[:i], "\n"))
+			//dumpHeader = []byte(strings.Join(dps[:i], "\n"))
 			dumpBody = []byte(strings.Join(dps[i:], "\n"))
 			break
 		}
@@ -326,8 +325,7 @@ func doRequestCommand(method string, params []string) (result string, err error)
 
 	if DumpOption&DumpReqHeader == DumpReqHeader {
 		buf.WriteString(Color("Request Header:\n", Yellow))
-		lines := strings.Split(string(dumpHeader), "\n")
-		fmt.Println(lines)
+		//lines := strings.Split(string(dumpHeader), "\n")
 		for k, v := range res.Request.Header {
 			buf.WriteString("\t")
 			buf.WriteString(k)
@@ -411,6 +409,27 @@ func doRemoveCommand(cmd string, cms []string) (res string, err error) {
 	RemoveItemWithName(cms[0])
 	res = "success remove " + Color(cms[0], Cyan)
 	return
+}
+
+func doDoListCommand(cmd string, cms []string) (string, error) {
+
+	if len(cms) == 0 {
+		return "", errors.New("Usage:\n\tdo list-name")
+	}
+
+	name := cms[0]
+
+	items, err := CmdItemLists()
+	if err != nil {
+		return "", err
+	}
+	for k, v := range items {
+		if k == name {
+			return doRequestCommand(v.Cmd, v.Args)
+		}
+	}
+
+	return "", errors.New("can not find list name " + Color(name, Red))
 }
 
 func doStateCommend(cmd string, cms []string) (result string, err error) {
