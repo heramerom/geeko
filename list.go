@@ -223,7 +223,7 @@ func SaveToList(item CmdItem) error {
 	return saveCmdItems(CmdItems)
 }
 
-func RemoveItemWithName(name string) error {
+func RemoveCmdItemWithName(name string) error {
 	if len(name) == 0 {
 		return errors.New("item name can not be empty")
 	}

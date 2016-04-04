@@ -224,8 +224,9 @@ func doListCommand(cmd string, cms []string) (result string, err error) {
 		if err != nil {
 			return "", err
 		}
+		result = Color("Schemas:\n", Yellow)
 		for _, v := range schemas {
-			result = result + v.String() + "\n"
+			result = result + "\t" + Color(v.Name, Cyan) + "\t" + v.Url + "\n"
 		}
 		return result, err
 
@@ -379,7 +380,7 @@ func doCopyCommand(cmd string, cms []string) (res string, err error) {
 	if err != nil {
 		return
 	}
-	res = "\tsuccess to copy the body"
+	res = "\tsuccess to copy the response body to clipboard."
 	return
 }
 
@@ -399,7 +400,7 @@ func doUseCommand(cmd string, cms []string) (res string, err error) {
 	Pwd = schema.Pwd
 	Headers = schema.Headers
 	Params = schema.Params
-	res = "Use schema success"
+	res = Color("Use Schema\n\t", Yellow) + schema.String()
 	return
 }
 
@@ -407,8 +408,8 @@ func doRemoveCommand(cmd string, cms []string) (res string, err error) {
 	if len(cms) == 0 {
 		return "", errors.New("Usage:[remove|rm] list-name")
 	}
-	RemoveItemWithName(cms[0])
-	res = "success remove " + Color(cms[0], Cyan)
+	RemoveCmdItemWithName(cms[0])
+	res = Color("Remove Cmd:\n\t", Yellow) + Color(cms[0], Cyan)
 	return
 }
 
