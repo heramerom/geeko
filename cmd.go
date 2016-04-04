@@ -300,14 +300,12 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		return
 	}
 
-	//var dumpHeader, dumpBody []byte
-	var dumpBody []byte
+	var dumpHeader, dumpBody []byte
 	dump := req.DumpRequest()
 	dps := strings.Split(string(dump), "\n")
 	for i, line := range dps {
-		println(line)
 		if len(strings.Trim(line, "\r\n ")) == 0 {
-			//dumpHeader = []byte(strings.Join(dps[:i], "\n"))
+			dumpHeader = []byte(strings.Join(dps[:i], "\n"))
 			dumpBody = []byte(strings.Join(dps[i:], "\n"))
 			break
 		}
@@ -316,20 +314,24 @@ func doRequestCommand(method string, params []string) (result string, err error)
 	buf := bytes.NewBufferString("")
 
 	if DumpOption&DumpUrl == DumpUrl {
+		hds := strings.Split(string(dumpHeader), "\n")
 		buf.WriteString(Color("URL:\n\t", Yellow))
-		buf.WriteString(Color(strings.ToUpper(method), Cyan))
-		buf.WriteString(" ")
-		buf.WriteString(res.Request.URL.String())
+		urls := strings.Split(hds[0], " ")
+		buf.WriteString(Color(urls[0] + " ", Cyan))
+		buf.WriteString(urls[1] + " " + urls[2])
+		buf.WriteString("\n\t")
+		hosts := strings.Split(hds[1], ":")
+		buf.WriteString(Color(hosts[0] + ": ", Cyan))
+		buf.WriteString(hosts[1])
 		buf.WriteString("\n")
 	}
 
 	if DumpOption&DumpReqHeader == DumpReqHeader {
 		buf.WriteString(Color("Request Header:\n", Yellow))
-		//lines := strings.Split(string(dumpHeader), "\n")
 		for k, v := range res.Request.Header {
 			buf.WriteString("\t")
-			buf.WriteString(k)
-			buf.WriteString(":")
+			buf.WriteString(Color(k, Cyan))
+			buf.WriteString(" : ")
 			buf.WriteString(strings.Join(v, ", "))
 			buf.WriteString("\n")
 		}
@@ -339,10 +341,9 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		buf.WriteString(Color("Params:\n", Yellow))
 		buf.WriteString("\t")
 		if res.Request.Method == "POST" {
-			if err != nil {
-				buf.WriteString(err.Error())
-			} else {
-				buf.WriteString(string(dumpBody))
+			bs := strings.Split(string(dumpBody), "\n")
+			for _, v := range bs {
+				buf.WriteString("\t" + v + "\n")
 			}
 		} else {
 			buf.WriteString("Empty")
@@ -354,7 +355,7 @@ func doRequestCommand(method string, params []string) (result string, err error)
 		buf.WriteString(Color("Response Header:\n", Yellow))
 		for k, v := range res.Header {
 			buf.WriteString("\t")
-			buf.WriteString(k)
+			buf.WriteString(Color(k, Cyan))
 			buf.WriteString(" : ")
 			buf.WriteString(strings.Join(v, ", "))
 			buf.WriteString("\n")

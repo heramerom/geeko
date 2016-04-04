@@ -13,7 +13,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
@@ -98,14 +97,6 @@ func BuildFormPrams(m map[string]string) (body string) {
 	return
 }
 
-func xmlBody(m map[string]string) (b []byte, err error) {
-	str, err := xml.Marshal(m)
-	if err != nil {
-		return []byte(""), err
-	}
-	return []byte(str), nil
-}
-
 func buildUrl(baseUrl string, url string) string {
 	if len(baseUrl) == 0 && len(url) == 0 {
 		return ""
@@ -156,50 +147,4 @@ func formatResponseBody(res *http.Response, httpreq *httplib.BeegoHTTPRequest, p
 	}
 
 	return string(body)
-}
-
-func buildParams(reqestSerialization string, params map[string]string) (result string, err error) {
-
-	if len(reqestSerialization) == 0 {
-		err = errors.New("reqest serialization can not be nil")
-		return
-	}
-
-	if len(params) == 0 {
-		result = ""
-		return
-	}
-
-	if reqestSerialization == "form" {
-		buf := bytes.NewBufferString("")
-		for k, v := range params {
-			buf.WriteString(url.QueryEscape(k))
-			buf.WriteString("=")
-			buf.WriteString(url.QueryEscape(v))
-			buf.WriteString("&")
-		}
-		result = buf.String()
-		if len(result) > 0 {
-			result = result[:len(result)-1]
-		}
-		return
-	} else if reqestSerialization == "json" {
-		buf, err := json.Marshal(params)
-		if err != nil {
-			return "", err
-		}
-		result = string(buf)
-		return result, err
-	} else if reqestSerialization == "xml" {
-		buf, err := xml.Marshal(params)
-		if err != nil {
-			return "", err
-		}
-		result = string(buf)
-		return result, nil
-	} else {
-		err = errors.New("unknow reqest serialization " + Color(reqestSerialization, Red))
-		return "", err
-	}
-	return
 }
